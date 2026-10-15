@@ -3,6 +3,12 @@
 #include "server.h"
 
 int main(int argc, char* argv[]) {
-  if (argc > 1)  printf("%s\n", argv[1]);
+  int port = 1234;
+  if (argc > 1) {
+    sscanf(argv[1], "%i", &port);
+  }
+  printf("using port %d\n", port);
+
+
   return 0;
 }
