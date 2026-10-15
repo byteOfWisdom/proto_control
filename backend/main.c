@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <arpa/inet.h>
 #include "server.h"
 
 int main(int argc, char* argv[]) {
@@ -9,8 +8,8 @@ int main(int argc, char* argv[]) {
   }
   printf("[INFO] Using port %d\n", port);
 
-  int socket;
-  if ((socket = init_server(port)) < 0) {
+  int socket = init_server(port);
+  if (socket < 0) {
     printf("[ERROR][main.c/main(...)] got an error initing the socket\n");
     return -1;
   }
