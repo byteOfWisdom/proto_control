@@ -7,8 +7,14 @@ int main(int argc, char* argv[]) {
   if (argc > 1) {
     sscanf(argv[1], "%i", &port);
   }
-  printf("using port %d\n", port);
+  printf("[INFO] Using port %d\n", port);
 
+  int socket;
+  if ((socket = init_server(port)) < 0) {
+    printf("[ERROR][main.c/main(...)] got an error initing the socket\n");
+    return -1;
+  }
 
+  close(socket);
   return 0;
 }
