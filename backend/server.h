@@ -1,3 +1,6 @@
+#ifndef LIB_SERVER_BOUND
+#define LIB_SERVER_BOUND
+
 #include <sys/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,3 +99,5 @@ void* accept_loop(void* params_raw) {
   }
   return nullptr;
 }
+
+#endif
