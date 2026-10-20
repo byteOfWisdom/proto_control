@@ -35,6 +35,9 @@ void free_channel(channel_t* chan) {
   free(chan->data);
 }
 
+#define channel_checked_lock(C) if (pthread_mutex_lock(&C->lock) != 0) return -1
+#define channel_checked_unlock(C) if (pthread_mutex_unlock(&C->lock) != 0) return -1
+
 
 int _read_channel(channel_t* chan, void* read_to, size_t len) {  
   // returns 1 if channel was locked or not filled, 0 on success, -1 on error
@@ -45,22 +48,21 @@ int _read_channel(channel_t* chan, void* read_to, size_t len) {
     chan->filled = false;
     rtc = 0;
   }
-  if (pthread_mutex_unlock(&chan->lock) != 0) return -1;
+  channel_checked_unlock(chan);
   return rtc;
 }
 
-
 int _write_channel(channel_t* chan, void* value, size_t len) {
   //blocks until channel is unlocked and not filled, then writes data
-  if (pthread_mutex_lock(&chan->lock) != 0) return -1;
+  channel_checked_lock(chan);
   bool full = chan->filled;
   while (full) {
-    if (pthread_mutex_unlock(&chan->lock) != 0) return -1;
+    channel_checked_unlock(chan);
     full = chan->filled;
-    if (pthread_mutex_lock(&chan->lock) != 0) return -1;
+    channel_checked_lock(chan);
   }
   memcpy(chan->data, value, len);
   chan->filled = true;
-  if (pthread_mutex_unlock(&chan->lock) != 0) return -1;
+  channel_checked_unlock(chan);
   return 0;
 }
