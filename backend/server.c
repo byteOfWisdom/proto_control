@@ -59,7 +59,7 @@ void* accept_loop(void* params_raw) {
       sleep(1);
     }
     
-    if (conn_queue->filled >= 64) {
+    if (conn_queue->filled >= CONN_BUFF_DEPTH) {
       printf("[WARN][server.h/accept_loop(...)] found a full connect buffer. closing last connection.\n");
       close(new_client.socket);
     } else {
@@ -71,5 +71,11 @@ void* accept_loop(void* params_raw) {
     }
     
   }
+  return nullptr;
+}
+
+
+void* read_connection(void* params) {
+
   return nullptr;
 }

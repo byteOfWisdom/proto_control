@@ -13,8 +13,10 @@ typedef struct {
   struct sockaddr addr;
 } client_desc_t;
 
+#define CONN_BUFF_DEPTH 64
+
 typedef struct {
-  client_desc_t sockets[64];
+  client_desc_t sockets[CONN_BUFF_DEPTH];
   int filled;
   pthread_mutex_t lock;
 } connection_queue_t;
@@ -27,6 +29,7 @@ typedef struct {
 int init_server(unsigned int port);
 int start_accept(int socket, connection_queue_t* conn_queue);
 void* accept_loop(void* params);
+void* read_connection(void* params);
 
 
 #endif
