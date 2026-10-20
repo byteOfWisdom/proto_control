@@ -8,9 +8,10 @@ int main(int argc, char* argv[]) {
   channel_t chan = make_channel(int);
   int temp = 10;
   write_channel(&chan, &temp);
-  // _write_channel(&chan_test, &temp, sizeof(int));
-  // int test = read_channel(&chan, )
-  // free_channel(&chan);
+  int test;
+  read_channel(&chan, &test);
+  printf("test now is; %d\n", test);
+  free_channel(&chan);
   int port = 1234;
   if (argc > 1) {
     sscanf(argv[1], "%i", &port);
