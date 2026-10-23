@@ -5,14 +5,12 @@
 
 
 int main(int argc, char* argv[]) {
-  channel_t chan = make_channel(int);
-  int temp = 10;
-  write_channel(&chan, &temp);
-  int test;
-  read_channel(&chan, &test);
-  printf("test now is; %d\n", test);
-  free_channel(&chan);
-  int port = 1234;
+  if (argc == 1) {
+    printf("USAGE: ./run [port number]");
+    return 0;
+  }
+
+  int port = 1234; // bad default port. change to reasonable default or require port argument
   if (argc > 1) {
     sscanf(argv[1], "%i", &port);
   }
