@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include "server.h"
-
 #include "channel.h"
-
+#include "macros.h"
 
 int main(int argc, char* argv[]) {
   if (argc == 1) {
-    printf("USAGE: ./run [port number]");
+    printf("USAGE: ./run [port number]\n");
     return 0;
   }
 
@@ -21,6 +20,8 @@ int main(int argc, char* argv[]) {
     printf("[ERROR][main.c/main(...)] got an error initing the socket\n");
     return -1;
   }
+
+    
 
   close(socket);
   return 0;
