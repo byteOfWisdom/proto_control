@@ -10,17 +10,21 @@ import (
     "strconv"
 )
 
+func err_check(err error) {
+    if err != nil { log.Fatal(err) }
+}
+
 func main() {
     port, err := strconv.Atoi(os.Args[1])
+    err_check(err)
+
     ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-    if err != nil {
-        log.Fatal(err)
-    }
+    err_check(err)
+
     fmt.Printf("Listening on port %d\n", port)
     conn, err := ln.Accept()
-    if err != nil {
-        log.Fatal(err)
-    }
+    err_check(err)
+
     for {
         message, err :=  bufio.NewReader(conn).ReadString('\000')
         if err != nil {
