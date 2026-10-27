@@ -19,7 +19,7 @@ func main() {
         log.Fatal(err)
     }
     for {
-        message, err :=  bufio.NewReader(conn).ReadString('\n')
+        message, err :=  bufio.NewReader(conn).ReadString('\000')
         if err != nil {
             log.Fatal(err)
         }
