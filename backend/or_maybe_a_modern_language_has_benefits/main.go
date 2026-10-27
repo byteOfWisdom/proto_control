@@ -6,14 +6,17 @@ import (
     "log"
     "net"
     "strings"
+    "os"
+    "strconv"
 )
 
 func main() {
-    ln, err := net.Listen("tcp", ":8000")
+    port, err := strconv.Atoi(os.Args[1])
+    ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
     if err != nil {
         log.Fatal(err)
     }
-    fmt.Println("Listening on port 8000")
+    fmt.Printf("Listening on port %d\n", port)
     conn, err := ln.Accept()
     if err != nil {
         log.Fatal(err)
