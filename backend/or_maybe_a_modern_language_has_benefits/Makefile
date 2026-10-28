@@ -1,6 +1,6 @@
 
 build:
-	go build -o run main.go
+	rustc -o run main.rs
 
 run:
 	make build
