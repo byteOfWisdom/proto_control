@@ -7,4 +7,4 @@ name = "r-a-target"
 path = "./main.rs"
 
 [build]
-target-dir = "/tmp/"
+target-dir = "/tmp/rustc_target/"
