@@ -1,0 +1,10 @@
+[package]
+name = "r-a-ref"
+version = "0.0.1"
+
+[[bin]]
+name = "r-a-target"
+path = "./main.rs"
+
+[build]
+target-dir = "/tmp/"

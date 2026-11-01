@@ -1,0 +1,6 @@
+warning: Cargo.toml: `package.edition` is unspecified, defaulting to `2015` while the latest is `2024`
+warning: Cargo.toml: unused manifest key: build
+help: build is a valid .cargo/config.toml key
+warning: `r-a-ref` (manifest) generated 2 warnings
+    Checking r-a-ref v0.0.1 (/Users/leonidessau/work/proto_control/backend/or_maybe_a_modern_language_has_benefits)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.03s

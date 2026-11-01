@@ -1,6 +1,6 @@
 
 build:
-	rustc -o run main.rs
+	rustc -o run -O main.rs
 
 run:
 	make build
