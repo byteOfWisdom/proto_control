@@ -1,33 +1,69 @@
 // use std::env;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use std::net::{TcpListener, TcpStream};
-use std::array::from_fn;
 use std::collections::VecDeque;
 
 
-fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receiver<Message>) {
-    let mut sock_reader = BufReader::new(sock);
+// the main function to handle a single socket
+// only does the sending and receiving part, no actual logic (filtering, routing etc.) occurs
+fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receiver<Option<Message>>) {
+    // TODO: decice if unwrapping is acceptable or other error handling should be done
+    let mut sock_reader = BufReader::new(sock.try_clone().unwrap());
+    let mut sock_writer = BufWriter::new(sock);
 
     loop {
         let mut buffer: Vec<u8> = vec![];
         let n_chars = sock_reader.read_until(b'\0', &mut buffer);
         if n_chars.unwrap() > 0 {
-            let msg = String::from_utf8(buffer).unwrap();
-            println!("{}", msg);
+            let msg_string = String::from_utf8(buffer).unwrap();
+            let msg = parse_message(msg_string).unwrap_or(Message::new_empty());
+
+
+            match msg.mtype {
+                Mtype::Invalid => {},
+                Mtype::Query => {
+                    inc_dump.send(msg).unwrap();
+                    let resp = response.recv().unwrap()
+                        .unwrap_or(Message::new_empty());
+                    // TODO: don't discard the write_all result
+                    sock_writer.write_all(resp.as_string().as_bytes()).unwrap();
+                },
+
+                // TODO: don't make this an unwrap; handle gracefully
+                _ => {inc_dump.send(msg).unwrap();}
+            };
+
+            // println!("{}", msg);
         }
     }
 }
 
 
 fn parse_message(raw_message: String) -> Option<Message> {
-    
+    // TODO: implement parsing received message strings into messages
     return None;    
 }
 
-fn str_to_mtype(type_str: String) -> Option<Mtype> {
-    None
+fn str_to_mtype(type_str: String) -> Mtype {
+    match type_str.as_str() {
+        "Q" => Mtype::Query,
+        "D" => Mtype::Data,
+        "C" => Mtype::Command,
+        "M" => Mtype::Misc,
+        _ => Mtype::Invalid,
+    }
+}
+
+fn mtype_to_string(mtype: Mtype) -> String {
+    match mtype {
+        Mtype::Query => String::from("Q"),
+        Mtype::Data => String::from("D"),
+        Mtype::Command => String::from("C"),
+        Mtype::Misc => String::from("M"),
+        Mtype::Invalid => String::from("I")
+    }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq)]
@@ -56,6 +92,10 @@ impl Message {
             content: String::new()
         }
     }
+
+    pub fn as_string(&self) -> String {
+        return String::new();
+    }
 }
 
 struct MessageFilter {
@@ -76,11 +116,25 @@ impl MessageFilter {
             false => None
         }
     }
+
+    pub fn empty() -> Self {
+        Self {
+            min_id: usize::MAX,
+            sender_cond: String::new(),
+            mtype_cond: vec![Mtype::Invalid],
+            contend_cond: String::new(),
+        }
+    }
+
+    pub fn from_message(msg: Message) -> Option<Self> {
+        // TODO: implement conversion of message to filter
+        return None;
+    }
 }
 
 struct ConnInterface {
     from_conn: Receiver<Message>,
-    to_conn: Sender<Message>,
+    to_conn: Sender<Option<Message>>,
 }
 
 impl ConnInterface {
@@ -89,6 +143,10 @@ impl ConnInterface {
             Ok(msg) => Some(msg),
             Err(_) => None
         };
+    }
+
+    pub fn reply(&mut self, msg: Option<Message>) {
+        _ = self.to_conn.send(msg);
     }
 
 }
@@ -122,7 +180,7 @@ fn management_thread(new_conns: Receiver<ConnInterface>) {
     let mut conns : Vec<ConnInterface> = vec![];
     let mut cache = MessageChache::new();
     loop {
-        // todo: implement culling of inactive connections for better processing times and avoiding mem leaks (over very long times)
+        // TODO: implement culling of inactive connections for better processing times and avoiding mem leaks (over very long times)
         match new_conns.try_recv() {
             Ok(new_conn) => conns.push(new_conn),
             Err(_) => {},
@@ -131,7 +189,14 @@ fn management_thread(new_conns: Receiver<ConnInterface>) {
         for conn in conns.iter_mut() {
             if let Some(msg) = conn.get_msg() {
                 // TODO: don't log requests, instead fullfill them
-                cache.log(msg);
+                if msg.mtype == Mtype::Query {
+                    let filter = MessageFilter::from_message(msg).unwrap_or(MessageFilter::empty());
+                    let resp = cache.get_match(filter);
+                    conn.reply(resp);
+                }
+                else {
+                    cache.log(msg);
+                }
                 println!("got message");
             }
         }
@@ -141,7 +206,7 @@ fn management_thread(new_conns: Receiver<ConnInterface>) {
 }
 
 fn main() {
-    println!("hello world");
+    // TODO: implement config via commandline args
     let listener = TcpListener::bind("127.0.0.1:8000").unwrap();
     let (manage_send, manage_recv) = channel::<ConnInterface>();
 
@@ -153,7 +218,7 @@ fn main() {
             Err(_) => {continue;}
         };
         let (inc_sender, inc_receiver) = channel::<Message>();
-        let (resp_sender, resp_receiver) = channel::<Message>();
+        let (resp_sender, resp_receiver) = channel::<Option<Message>>();
         let conn_if = ConnInterface{
             from_conn: inc_receiver,
             to_conn: resp_sender
