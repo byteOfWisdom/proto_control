@@ -118,6 +118,15 @@ impl Message {
     }
 }
 
+fn match_filter(filter: &str, test_string: &str) -> bool {
+    // support wildcards:
+    //  "*" matches any number of any char
+    //  "?" matches any one char
+    //  "[a-z]" etc. matches the range of chars in the brackets. range here means utf-8 range
+    todo!();
+}
+
+
 struct MessageFilter {
     pub min_id: u64,
     pub sender_cond: String,
@@ -129,7 +138,7 @@ impl MessageFilter {
     pub fn matches(&self, msg: &Message) -> Option<Message>{
         let id_match = msg.id >= self.min_id;
         let type_match = self.mtype_cond.contains(&msg.mtype);
-        let sender_match = true; // TODO: implement
+        let sender_match = match_filter(self.sender_cond.as_str(), msg.from.as_str());
         let all_match = type_match && sender_match && id_match;
         match all_match {
             true => Some(msg.clone()),
