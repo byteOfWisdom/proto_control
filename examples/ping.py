@@ -6,6 +6,6 @@ if __name__ == "__main__":
 
     i = 0
     while (True):
-        uplink.send_message(f"test {i}", "ping")
+        uplink.send_message(f"test {i}", "data")
         sleep(1)
         i += 1

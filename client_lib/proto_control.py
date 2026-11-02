@@ -7,6 +7,14 @@ class uplink:
         self._name = sender_name
         self._socket = None
         self._connect()
+        self.type_dict = {
+            "misc": "M",
+            "query": "Q",
+            "command": "C",
+            "data": "D",
+            "invalid": "I",
+            
+        }
 
     def _connect(self):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -22,7 +30,8 @@ class uplink:
             print("NOT SENDING THAT")
             print("bYEEEE")
             return 1
-        msg_string = f"{self._name}|{type}|{message}\0"
+        type_str = self.type_dict[type] if type in self.type_dict else "I"
+        msg_string = f"{self._name}|{type_str}|{message}\0"
         not_sent = True
         while (not_sent):
             try:
