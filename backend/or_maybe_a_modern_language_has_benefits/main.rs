@@ -4,6 +4,7 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thread;
 use std::net::{TcpListener, TcpStream};
 use std::collections::VecDeque;
+use std::ffi::{CStr, c_char};
 
 
 // the main function to handle a single socket
@@ -118,12 +119,17 @@ impl Message {
     }
 }
 
+unsafe extern "C" {
+    fn fnmatch(pattern: *const c_char, string: *const c_char, flags: i32) -> i32;
+}
+
+
 fn match_filter(filter: &str, test_string: &str) -> bool {
-    // support wildcards:
-    //  "*" matches any number of any char
-    //  "?" matches any one char
-    //  "[a-z]" etc. matches the range of chars in the brackets. range here means utf-8 range
-    todo!();
+    let cstr_filter: &CStr = CStr::from_bytes_until_nul(filter.as_bytes()).unwrap();
+    let cstr_test: &CStr = CStr::from_bytes_until_nul(test_string.as_bytes()).unwrap();
+    unsafe {
+        return fnmatch(cstr_filter.as_ptr(), cstr_test.as_ptr(), 0) == 0;
+    }
 }
 
 
@@ -156,7 +162,7 @@ impl MessageFilter {
     }
 
     pub fn from_message(msg: Message) -> Option<Self> {
-        // TODO: implement conversion of message to filter
+        // ENSURE THAT ALL FILTER STRING HAVE NULL TERMINATORS!!!!!!!!
         return None;
     }
 }
