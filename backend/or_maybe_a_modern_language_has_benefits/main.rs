@@ -7,6 +7,17 @@ use std::collections::VecDeque;
 use std::ffi::{CStr, c_char};
 
 
+// macro to return none when assigning an expression returning an option
+macro_rules! return_none {
+    ($x:expr) => {
+        match $x {
+            Ok(y) => y,
+            Err(_) => {return None;},
+        }
+    };
+}
+
+
 // the main function to handle a single socket
 // only does the sending and receiving part, no actual logic (filtering, routing etc.) occurs
 fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receiver<Option<Message>>) {
@@ -45,18 +56,9 @@ fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receive
 
 fn parse_message(raw_message: String) -> Option<Message> {
     let mut chunks = raw_message.split("|");
-    let sender = match chunks.next() {
-        Some(s) => s,
-        None => {return None;},
-    };
-    let mtype = match chunks.next() {
-        Some(t) => str_to_mtype(t),
-        None => {return None;},
-    };
-    let content = match chunks.next() {
-        Some(c) => c,
-        None => {return None;},
-    };
+    let sender = chunks.next()?;
+    let mtype = str_to_mtype(chunks.next()?);
+    let content = chunks.next()?;
 
     return Some(Message{
         id: 0,
@@ -64,8 +66,8 @@ fn parse_message(raw_message: String) -> Option<Message> {
         mtype: mtype,
         content: String::from(content)
     });
-
 }
+
 
 fn str_to_mtype(type_str: &str) -> Mtype {
     match type_str {
@@ -161,8 +163,25 @@ impl MessageFilter {
         }
     }
 
+    pub fn assign(&mut self, key: &str, value: &str) {
+        // ENSURE THAT ALL FILTER STRING HAVE NULL TERMINATORS!!!!!!!!
+        match key {
+            "min_id" => {self.min_id = value.parse::<u64>().unwrap_or(0);},
+            "sender_cond" => {}
+            _ => {},
+        };
+    }
+
     pub fn from_message(msg: Message) -> Option<Self> {
         // ENSURE THAT ALL FILTER STRING HAVE NULL TERMINATORS!!!!!!!!
+        let content = msg.content;
+        let mut res = Self::empty();
+        for kv_pair in content.split(";") {
+            let mut kv = kv_pair.split("=");
+            let key = kv.next()?;
+            let value = kv.next()?;
+            res.assign(key, value);
+        }
         return None;
     }
 }
