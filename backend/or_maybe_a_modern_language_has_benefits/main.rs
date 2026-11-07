@@ -17,6 +17,15 @@ macro_rules! return_none {
     };
 }
 
+macro_rules! rto {
+    ($x:expr) => {
+        match $x {
+            Ok(y) => Some(y),
+            Err(_) => None,
+        }
+    }
+}
+
 
 // the main function to handle a single socket
 // only does the sending and receiving part, no actual logic (filtering, routing etc.) occurs
@@ -137,8 +146,8 @@ fn match_filter(filter: &str, test_string: &str) -> bool {
 
 struct MessageFilter {
     pub min_id: u64,
-    pub sender_cond: String,
-    pub mtype_cond: Vec<Mtype>,
+    pub sender_cond: String, //TODO: this has to be vec<string>
+    pub mtype_cond: Vec<Mtype>, //TODO: this actually doesn't have to be vec
     pub contend_cond: String,
 }
 
@@ -147,7 +156,8 @@ impl MessageFilter {
         let id_match = msg.id >= self.min_id;
         let type_match = self.mtype_cond.contains(&msg.mtype);
         let sender_match = match_filter(self.sender_cond.as_str(), msg.from.as_str());
-        let all_match = type_match && sender_match && id_match;
+        let content_match = match_filter(self.contend_cond.as_str(), msg.content.as_str());
+        let all_match = type_match && sender_match && id_match && content_match;
         match all_match {
             true => Some(msg.clone()),
             false => None
@@ -193,10 +203,7 @@ struct ConnInterface {
 
 impl ConnInterface {
     pub fn get_msg(&mut self) -> Option<Message> {
-        return match self.from_conn.try_recv() {
-            Ok(msg) => Some(msg),
-            Err(_) => None
-        };
+        return rto!(self.from_conn.try_recv());
     }
 
     pub fn reply(&mut self, msg: Option<Message>) {
