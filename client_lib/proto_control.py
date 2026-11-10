@@ -1,4 +1,5 @@
 import socket
+from types import NoneType
 
 class uplink:
     def __init__(self, ip, port, sender_name):
@@ -6,6 +7,7 @@ class uplink:
         self._port = port
         self._name = sender_name
         self._socket = None
+        self._last_id = 0
         self._connect()
         self.type_dict = {
             "misc": "M",
@@ -42,16 +44,29 @@ class uplink:
         return 0
 
 
-    def request(self, from_filter="*", mtype="misc", content_filter="*", min_id=0):
+    def request(self, from_filter="*", mtype="misc", content_filter="*", min_id=None):
+        if isinstance(min_id, NoneType):
+            min_id = self._last_id
         type_str = self.type_dict[mtype] if mtype in self.type_dict else "I"
         self.send_message(f"sender_cond={from_filter};min_id={min_id};content_cond={content_filter};mtype_cond={type_str}", type="query")
 
         response = ""
         while "\0" not in response:
-            chunk = self._socket.recv(1)
-            if chunk[0] == 0:
-                break
+
+            # TODO: make this more efficient
+            chunk = self._socket.recv(1024)
             response += chunk.decode("utf-8")
 
-        # TODO: parse this into a dict or something
-        return response
+        msg_parts = response.split("|")
+        response_msg = {
+            "from": msg_parts[0],
+            "mtype": msg_parts[1], # TODO: convert to string
+            "id": int(msg_parts[2]),
+            "content": "".join(msg_parts[3:])
+        }
+
+        if response_msg["mtype"] != "I":
+            self._last_id = response_msg["id"] + 1
+            return response_msg
+
+        return None

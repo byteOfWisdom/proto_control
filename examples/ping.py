@@ -7,5 +7,5 @@ if __name__ == "__main__":
     i = 0
     while (True):
         uplink.send_message(f"test {i}", "data")
-        sleep(1)
+        sleep(0.01)
         i += 1

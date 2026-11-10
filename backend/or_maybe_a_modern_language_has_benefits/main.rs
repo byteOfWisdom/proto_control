@@ -100,6 +100,7 @@ fn mtype_to_string(mtype: Mtype) -> String {
     }
 }
 
+// TODO: add mtype QueryWait. set it to block until matching packet has been found
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 enum Mtype {
     Data,
@@ -249,7 +250,11 @@ impl MessageChache {
     }
 
     pub fn get_match(&mut self, filter: MessageFilter) -> Option<Message> {
-        self.buffer.iter().find_map(|x| filter.matches(x))
+        if filter.min_id == 0 {
+            self.buffer.iter().rev().find_map(|x| filter.matches(x))
+        } else {
+            self.buffer.iter().find_map(|x| filter.matches(x))
+        }
     }
 }
 
