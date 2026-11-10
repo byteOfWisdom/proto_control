@@ -42,7 +42,7 @@ fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receive
             let msg = parse_message(msg_string).unwrap_or(Message::new_empty());
 
 
-            dbg!("got message: {}", msg.clone());
+            // dbg!("got message: {}", msg.clone());
             match msg.mtype {
                 Mtype::Invalid => {},
                 Mtype::Query => {
@@ -50,7 +50,7 @@ fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receive
                     let resp = response.recv().unwrap()
                         .unwrap_or(Message::new_empty());
                     // TODO: don't discard/unwrap the write_all result
-                    dbg!(resp.clone().as_string());
+                    // dbg!(resp.clone().as_string());
                     sock_writer.write_all(resp.as_string().as_bytes()).unwrap();
                     sock_writer.flush().unwrap();
                 },
@@ -139,8 +139,8 @@ unsafe extern "C" {
 
 
 fn match_filter(filter: &str, test_string: &str) -> bool {
-    dbg!(filter);
-    dbg!(test_string);
+    // dbg!(filter);
+    // dbg!(test_string);
     let sanitized_test_string = String::from(test_string) + "\0";
     let cstr_filter: &CStr = CStr::from_bytes_until_nul(filter.as_bytes()).unwrap();
     let cstr_test: &CStr = CStr::from_bytes_until_nul(sanitized_test_string.as_bytes()).unwrap();
@@ -159,11 +159,11 @@ struct MessageFilter {
 
 impl MessageFilter {
     pub fn matches(&self, msg: &Message) -> Option<Message>{
-        dbg!(self);
+        // dbg!(self);
         let id_match = msg.id >= self.min_id;
         let type_match = self.mtype_cond.contains(&msg.mtype);
-        let sender_match = match_filter(self.sender_cond.as_str(), msg.from.as_str());
-        let content_match = match_filter(self.content_cond.as_str(), msg.content.as_str());
+        let sender_match = true; // match_filter(self.sender_cond.as_str(), msg.from.as_str());
+        let content_match = true; //match_filter(self.content_cond.as_str(), msg.content.as_str());
         let all_match = type_match && sender_match && id_match && content_match;
         match all_match {
             true => Some(msg.clone()),
@@ -193,18 +193,18 @@ impl MessageFilter {
 
     pub fn from_message(msg: Message) -> Option<Self> {
         // ENSURE THAT ALL FILTER STRING HAVE NULL TERMINATORS!!!!!!!!
-        dbg!(msg.clone());
+        // dbg!(msg.clone());
         let content = msg.content;
         let mut res = Self::empty();
         for kv_pair in content.split(";") {
             let mut kv = kv_pair.split("=");
             let key = kv.next()?;
             let value = kv.next()?;
-            dbg!(key, value);
+            // dbg!(key, value);
             res.assign(key, value);
-            dbg!(res.clone());
+            // dbg!(res.clone());
         }
-        dbg!(res.clone());
+        // dbg!(res.clone());
         return Some(res);
     }
 }
@@ -272,9 +272,9 @@ fn management_thread(new_conns: Receiver<ConnInterface>) {
             if let Some(msg) = conn.get_msg() {
                 // TODO: don't log requests, instead fullfill them
                 if msg.mtype == Mtype::Query {
-                    dbg!("got a query!");
+                    // dbg!("got a query!");
                     let filter = MessageFilter::from_message(msg).unwrap_or(MessageFilter::empty());
-                    dbg!(filter.clone());
+                    // dbg!(filter.clone());
                     let resp = cache.get_match(filter);
                     conn.reply(resp);
                 }
