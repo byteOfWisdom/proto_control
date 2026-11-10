@@ -40,4 +40,18 @@ class uplink:
             except BrokenPipeError:
                 self._connect()
         return 0
-        
+
+
+    def request(self, from_filter="*", mtype="misc", content_filter="*", min_id=0):
+        type_str = self.type_dict[mtype] if mtype in self.type_dict else "I"
+        self.send_message(f"sender_cond={from_filter};min_id={min_id};content_cond={content_filter};mtype_cond={type_str}", type="query")
+
+        response = ""
+        while "\0" not in response:
+            chunk = self._socket.recv(1)
+            if chunk[0] == 0:
+                break
+            response += chunk.decode("utf-8")
+
+        # TODO: parse this into a dict or something
+        return response

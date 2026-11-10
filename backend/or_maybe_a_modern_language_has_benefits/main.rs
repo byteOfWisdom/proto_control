@@ -50,7 +50,9 @@ fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receive
                     let resp = response.recv().unwrap()
                         .unwrap_or(Message::new_empty());
                     // TODO: don't discard/unwrap the write_all result
+                    dbg!(resp.clone().as_string());
                     sock_writer.write_all(resp.as_string().as_bytes()).unwrap();
+                    sock_writer.flush().unwrap();
                 },
 
                 // TODO: don't make this an unwrap; handle gracefully
@@ -73,7 +75,7 @@ fn parse_message(raw_message: String) -> Option<Message> {
         id: 0,
         from: String::from(sender),
         mtype: mtype,
-        content: String::from(content)
+        content: String::from(content).replace("\0", "")
     });
 }
 
@@ -136,27 +138,31 @@ unsafe extern "C" {
 
 
 fn match_filter(filter: &str, test_string: &str) -> bool {
+    dbg!(filter);
+    dbg!(test_string);
+    let sanitized_test_string = String::from(test_string) + "\0";
     let cstr_filter: &CStr = CStr::from_bytes_until_nul(filter.as_bytes()).unwrap();
-    let cstr_test: &CStr = CStr::from_bytes_until_nul(test_string.as_bytes()).unwrap();
+    let cstr_test: &CStr = CStr::from_bytes_until_nul(sanitized_test_string.as_bytes()).unwrap();
     unsafe {
         return fnmatch(cstr_filter.as_ptr(), cstr_test.as_ptr(), 0) == 0;
     }
 }
 
-
+#[derive(Debug, Clone)]
 struct MessageFilter {
     pub min_id: u64,
     pub sender_cond: String, //TODO: this has to be vec<string>
     pub mtype_cond: Vec<Mtype>, //TODO: this actually doesn't have to be vec
-    pub contend_cond: String,
+    pub content_cond: String,
 }
 
 impl MessageFilter {
     pub fn matches(&self, msg: &Message) -> Option<Message>{
+        dbg!(self);
         let id_match = msg.id >= self.min_id;
         let type_match = self.mtype_cond.contains(&msg.mtype);
         let sender_match = match_filter(self.sender_cond.as_str(), msg.from.as_str());
-        let content_match = match_filter(self.contend_cond.as_str(), msg.content.as_str());
+        let content_match = match_filter(self.content_cond.as_str(), msg.content.as_str());
         let all_match = type_match && sender_match && id_match && content_match;
         match all_match {
             true => Some(msg.clone()),
@@ -169,7 +175,7 @@ impl MessageFilter {
             min_id: u64::MAX,
             sender_cond: String::new(),
             mtype_cond: vec![Mtype::Invalid],
-            contend_cond: String::new(),
+            content_cond: String::new(),
         }
     }
 
@@ -177,22 +183,28 @@ impl MessageFilter {
         // ENSURE THAT ALL FILTER STRING HAVE NULL TERMINATORS!!!!!!!!
         match key {
             "min_id" => {self.min_id = value.parse::<u64>().unwrap_or(0);},
-            "sender_cond" => {}
+            "sender_cond" => {self.sender_cond = String::from(value) + "\0";}
+            "content_cond" => {self.content_cond = String::from(value) + "\0";}
+            "mtype_cond" => {self.mtype_cond = vec![str_to_mtype(value)];}
             _ => {},
         };
     }
 
     pub fn from_message(msg: Message) -> Option<Self> {
         // ENSURE THAT ALL FILTER STRING HAVE NULL TERMINATORS!!!!!!!!
+        dbg!(msg.clone());
         let content = msg.content;
         let mut res = Self::empty();
         for kv_pair in content.split(";") {
             let mut kv = kv_pair.split("=");
             let key = kv.next()?;
             let value = kv.next()?;
+            dbg!(key, value);
             res.assign(key, value);
+            dbg!(res.clone());
         }
-        return None;
+        dbg!(res.clone());
+        return Some(res);
     }
 }
 
@@ -255,7 +267,9 @@ fn management_thread(new_conns: Receiver<ConnInterface>) {
             if let Some(msg) = conn.get_msg() {
                 // TODO: don't log requests, instead fullfill them
                 if msg.mtype == Mtype::Query {
+                    dbg!("got a query!");
                     let filter = MessageFilter::from_message(msg).unwrap_or(MessageFilter::empty());
+                    dbg!(filter.clone());
                     let resp = cache.get_match(filter);
                     conn.reply(resp);
                 }
@@ -265,8 +279,6 @@ fn management_thread(new_conns: Receiver<ConnInterface>) {
                 println!("got message");
             }
         }
-
-
     }
 }
 
