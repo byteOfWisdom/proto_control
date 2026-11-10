@@ -162,8 +162,8 @@ impl MessageFilter {
         // dbg!(self);
         let id_match = msg.id >= self.min_id;
         let type_match = self.mtype_cond.contains(&msg.mtype);
-        let sender_match = true; // match_filter(self.sender_cond.as_str(), msg.from.as_str());
-        let content_match = true; //match_filter(self.content_cond.as_str(), msg.content.as_str());
+        let sender_match = match_filter(self.sender_cond.as_str(), msg.from.as_str());
+        let content_match = match_filter(self.content_cond.as_str(), msg.content.as_str());
         let all_match = type_match && sender_match && id_match && content_match;
         match all_match {
             true => Some(msg.clone()),
