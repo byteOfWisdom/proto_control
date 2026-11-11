@@ -37,7 +37,11 @@ fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receive
     loop {
         let mut buffer: Vec<u8> = vec![];
         let n_chars = sock_reader.read_until(b'\0', &mut buffer);
-        if n_chars.unwrap() > 0 {
+        match n_chars {
+            Ok(0) => {},
+            Err(_) => {return;},
+            Ok(_) => {
+        // if n_chars.unwrap() > 0 {
             let msg_string = String::from_utf8(buffer).unwrap();
             let msg = parse_message(msg_string).unwrap_or(Message::new_empty());
 
@@ -60,7 +64,7 @@ fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receive
             };
 
             // println!("got message");
-        }
+        }}
     }
 }
 
@@ -285,7 +289,7 @@ fn management_thread(new_conns: Receiver<ConnInterface>) {
                 else {
                     cache.log(msg);
                 }
-                println!("got message");
+                // println!("got message");
             }
         }
     }
