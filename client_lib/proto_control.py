@@ -2,9 +2,11 @@ import socket
 from types import NoneType
 
 class uplink:
-    def __init__(self, ip, port, sender_name):
+    def __init__(self, ip, port, sender_name, device_name=None):
         self._ip = ip
         self._port = port
+        # TODO: make device name a global thing that gets configured per device
+        self._device_name = device_name if device_name else ""
         self._name = sender_name
         self._socket = None
         self._last_id = 0
@@ -33,7 +35,7 @@ class uplink:
             print("bYEEEE")
             return 1
         type_str = self.type_dict[type] if type in self.type_dict else "I"
-        msg_string = f"{self._name}|{type_str}|{message}\0"
+        msg_string = f"{self._device_name}|{self._name}|{type_str}|{message}\0"
         not_sent = True
         while (not_sent):
             try:
@@ -59,10 +61,11 @@ class uplink:
 
         msg_parts = response.split("|")
         response_msg = {
-            "from": msg_parts[0],
-            "mtype": msg_parts[1], # TODO: convert to string
-            "id": int(msg_parts[2]),
-            "content": "".join(msg_parts[3:])
+            "from_device": msg_parts[0],
+            "from": msg_parts[1],
+            "mtype": msg_parts[2], # TODO: convert to string
+            "id": int(msg_parts[3]),
+            "content": "".join(msg_parts[4:])
         }
 
         if response_msg["mtype"] != "I":

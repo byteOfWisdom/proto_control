@@ -67,12 +67,14 @@ fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receive
 
 fn parse_message(raw_message: String) -> Option<Message> {
     let mut chunks = raw_message.split("|");
+    let sender_device = chunks.next()?;
     let sender = chunks.next()?;
     let mtype = str_to_mtype(chunks.next()?);
     let content = chunks.next()?;
 
     return Some(Message{
         id: 0,
+        from_device: String::from(sender_device),
         from: String::from(sender),
         mtype: mtype,
         content: String::from(content).replace("\0", "")
@@ -113,6 +115,7 @@ enum Mtype {
 #[derive(Clone, Debug)]
 struct Message {
     pub id: u64,
+    pub from_device: String,
     pub from: String,
     pub mtype: Mtype,
     pub content: String
@@ -122,6 +125,7 @@ impl Message {
     pub fn new_empty() -> Self {
         Self {
             id: 0,
+            from_device: String::new(),
             from: String::new(),
             mtype: Mtype::Invalid,
             content: String::new()
@@ -129,7 +133,7 @@ impl Message {
     }
 
     pub fn as_string(&self) -> String {
-        return format!("{}|{}|{}|{}\0", self.from, mtype_to_string(self.mtype), self.id, self.content);
+        return format!("{}|{}|{}|{}|{}\0", self.from_device, self.from, mtype_to_string(self.mtype), self.id, self.content);
     }
 }
 
