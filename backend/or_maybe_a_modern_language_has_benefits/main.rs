@@ -27,6 +27,35 @@ macro_rules! rto {
 }
 
 
+struct NetIF {
+    sock: TcpStream,
+    msg_dump: Sender<Message>,
+    response: Receiver<Option<Message>>,
+    sock_reader: BufReader<TcpStream>,
+    sock_writer: BufWriter<TcpStream>,
+}
+
+
+impl NetIF {
+    fn new(sock: TcpStream, inc_dump: Sender<Message>, response: Receiver<Option<Message>>) -> Self {
+        let sock_reader = BufReader::new(sock.try_clone().unwrap());
+        let sock_writer = BufWriter::new(sock.try_clone().unwrap());
+        Self {
+            sock: sock,
+            msg_dump: inc_dump,
+            response: response,
+            sock_reader: sock_reader,
+            sock_writer: sock_writer
+        }
+    }
+
+
+    fn get_msg(&mut self) -> Option<Message> {
+        return None;
+    }
+}
+
+
 // the main function to handle a single socket
 // only does the sending and receiving part, no actual logic (filtering, routing etc.) occurs
 fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receiver<Option<Message>>) {
@@ -41,30 +70,25 @@ fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receive
             Ok(0) => {},
             Err(_) => {return;},
             Ok(_) => {
-        // if n_chars.unwrap() > 0 {
-            let msg_string = String::from_utf8(buffer).unwrap();
-            let msg = parse_message(msg_string).unwrap_or(Message::new_empty());
+                let msg_string = String::from_utf8(buffer).unwrap();
+                let msg = parse_message(msg_string).unwrap_or(Message::new_empty());
 
+                match msg.mtype {
+                    Mtype::Invalid => {},
+                    Mtype::Query => {
+                        inc_dump.send(msg).unwrap();
+                        let resp = response.recv().unwrap()
+                            .unwrap_or(Message::new_empty());
+                        // TODO: don't discard/unwrap the write_all result
+                        sock_writer.write_all(resp.as_string().as_bytes()).unwrap();
+                        sock_writer.flush().unwrap();
+                    },
 
-            // dbg!("got message: {}", msg.clone());
-            match msg.mtype {
-                Mtype::Invalid => {},
-                Mtype::Query => {
-                    inc_dump.send(msg).unwrap();
-                    let resp = response.recv().unwrap()
-                        .unwrap_or(Message::new_empty());
-                    // TODO: don't discard/unwrap the write_all result
-                    // dbg!(resp.clone().as_string());
-                    sock_writer.write_all(resp.as_string().as_bytes()).unwrap();
-                    sock_writer.flush().unwrap();
-                },
-
-                // TODO: don't make this an unwrap; handle gracefully
-                _ => {inc_dump.send(msg).unwrap();}
-            };
-
-            // println!("got message");
-        }}
+                    // TODO: don't make this an unwrap; handle gracefully
+                    _ => {inc_dump.send(msg).unwrap();}
+                };
+            }
+        }
     }
 }
 
@@ -147,8 +171,6 @@ unsafe extern "C" {
 
 
 fn match_filter(filter: &str, test_string: &str) -> bool {
-    // dbg!(filter);
-    // dbg!(test_string);
     let sanitized_test_string = String::from(test_string) + "\0";
     let cstr_filter: &CStr = CStr::from_bytes_until_nul(filter.as_bytes()).unwrap();
     let cstr_test: &CStr = CStr::from_bytes_until_nul(sanitized_test_string.as_bytes()).unwrap();
