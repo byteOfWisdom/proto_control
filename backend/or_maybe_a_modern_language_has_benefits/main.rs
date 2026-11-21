@@ -8,14 +8,14 @@ use std::ffi::{CStr, c_char};
 
 
 // macro to return none when assigning an expression returning an option
-macro_rules! return_none {
-    ($x:expr) => {
-        match $x {
-            Ok(y) => y,
-            Err(_) => {return None;},
-        }
-    };
-}
+// macro_rules! return_none {
+//     ($x:expr) => {
+//         match $x {
+//             Ok(y) => y,
+//             Err(_) => {return None;},
+//         }
+//     };
+// }
 
 macro_rules! rto {
     ($x:expr) => {
@@ -28,7 +28,7 @@ macro_rules! rto {
 
 
 struct NetIF {
-    sock: TcpStream,
+    // sock: TcpStream,
     msg_dump: Sender<Message>,
     response: Receiver<Option<Message>>,
     sock_reader: BufReader<TcpStream>,
@@ -41,7 +41,7 @@ impl NetIF {
         let sock_reader = BufReader::new(sock.try_clone().unwrap());
         let sock_writer = BufWriter::new(sock.try_clone().unwrap());
         Self {
-            sock: sock,
+            // sock: sock,
             msg_dump: inc_dump,
             response: response,
             sock_reader: sock_reader,
@@ -99,41 +99,6 @@ fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receive
         };
     }
 }
-// the main function to handle a single socket
-// only does the sending and receiving part, no actual logic (filtering, routing etc.) occurs
-// fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receiver<Option<Message>>) {
-//     // TODO: decice if unwrapping is acceptable or other error handling should be done
-//     let mut sock_reader = BufReader::new(sock.try_clone().unwrap());
-//     let mut sock_writer = BufWriter::new(sock.try_clone().unwrap());
-
-//     loop {
-//         let mut buffer: Vec<u8> = vec![];
-//         let n_chars = sock_reader.read_until(b'\0', &mut buffer);
-//         match n_chars {
-//             Ok(0) => {},
-//             Err(_) => {return;},
-//             Ok(_) => {
-//                 let msg_string = String::from_utf8(buffer).unwrap();
-//                 let msg = parse_message(msg_string).unwrap_or(Message::new_empty());
-
-//                 match msg.mtype {
-//                     Mtype::Invalid => {},
-//                     Mtype::Query => {
-//                         inc_dump.send(msg).unwrap();
-//                         let resp = response.recv().unwrap()
-//                             .unwrap_or(Message::new_empty());
-//                         // TODO: don't discard/unwrap the write_all result
-//                         sock_writer.write_all(resp.as_string().as_bytes()).unwrap();
-//                         sock_writer.flush().unwrap();
-//                     },
-
-//                     // TODO: don't make this an unwrap; handle gracefully
-//                     _ => {inc_dump.send(msg).unwrap();}
-//                 };
-//             }
-//         }
-//     }
-// }
 
 
 fn parse_message(raw_message: String) -> Option<Message> {
