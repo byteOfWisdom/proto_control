@@ -50,47 +50,90 @@ impl NetIF {
     }
 
 
-    fn get_msg(&mut self) -> Option<Message> {
-        return None;
-    }
-}
-
-
-// the main function to handle a single socket
-// only does the sending and receiving part, no actual logic (filtering, routing etc.) occurs
-fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receiver<Option<Message>>) {
-    // TODO: decice if unwrapping is acceptable or other error handling should be done
-    let mut sock_reader = BufReader::new(sock.try_clone().unwrap());
-    let mut sock_writer = BufWriter::new(sock.try_clone().unwrap());
-
-    loop {
+    fn get_msg(&mut self) -> Message {
         let mut buffer: Vec<u8> = vec![];
-        let n_chars = sock_reader.read_until(b'\0', &mut buffer);
-        match n_chars {
-            Ok(0) => {},
-            Err(_) => {return;},
+        let n_chars = self.sock_reader.read_until(b'\0', &mut buffer);
+        return match n_chars {
+            Ok(0) => Message::new_empty(),
+            Err(_) => Message::new_empty(),
             Ok(_) => {
                 let msg_string = String::from_utf8(buffer).unwrap();
                 let msg = parse_message(msg_string).unwrap_or(Message::new_empty());
-
-                match msg.mtype {
-                    Mtype::Invalid => {},
-                    Mtype::Query => {
-                        inc_dump.send(msg).unwrap();
-                        let resp = response.recv().unwrap()
-                            .unwrap_or(Message::new_empty());
-                        // TODO: don't discard/unwrap the write_all result
-                        sock_writer.write_all(resp.as_string().as_bytes()).unwrap();
-                        sock_writer.flush().unwrap();
-                    },
-
-                    // TODO: don't make this an unwrap; handle gracefully
-                    _ => {inc_dump.send(msg).unwrap();}
-                };
+                return msg;
             }
         }
     }
+
+    fn send_msg(&mut self, msg: Message) { // TODO: propagate errors cleanly instead of unwrap
+        self.sock_writer.write_all(msg.as_string().as_bytes()).unwrap();
+        self.sock_writer.flush().unwrap();
+    }
+
+    fn cache(&mut self, msg: Message) {
+        self.msg_dump.send(msg).unwrap();
+    }
+
+    fn query(&mut self, query: Message) -> Message {
+        self.msg_dump.send(query).unwrap();
+        let resp = self.response.recv().unwrap().unwrap_or(Message::new_empty());
+        return resp;
+    }
 }
+
+
+fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receiver<Option<Message>>) {
+    let mut net_if = NetIF::new(sock, inc_dump, response);
+    loop {
+        let msg = net_if.get_msg();
+        match msg.mtype {
+            Mtype::Invalid => {},
+            Mtype::Query => {
+                let res = net_if.query(msg);
+                if valid_response_mtype(res.mtype) {
+                    net_if.send_msg(res);
+                }
+            }, // TODO: respond to query
+            _ => {
+                net_if.cache(msg);
+            }, // TODO: just log that stuff
+        };
+    }
+}
+// the main function to handle a single socket
+// only does the sending and receiving part, no actual logic (filtering, routing etc.) occurs
+// fn handle_tcp_conn(sock: TcpStream, inc_dump: Sender<Message>, response: Receiver<Option<Message>>) {
+//     // TODO: decice if unwrapping is acceptable or other error handling should be done
+//     let mut sock_reader = BufReader::new(sock.try_clone().unwrap());
+//     let mut sock_writer = BufWriter::new(sock.try_clone().unwrap());
+
+//     loop {
+//         let mut buffer: Vec<u8> = vec![];
+//         let n_chars = sock_reader.read_until(b'\0', &mut buffer);
+//         match n_chars {
+//             Ok(0) => {},
+//             Err(_) => {return;},
+//             Ok(_) => {
+//                 let msg_string = String::from_utf8(buffer).unwrap();
+//                 let msg = parse_message(msg_string).unwrap_or(Message::new_empty());
+
+//                 match msg.mtype {
+//                     Mtype::Invalid => {},
+//                     Mtype::Query => {
+//                         inc_dump.send(msg).unwrap();
+//                         let resp = response.recv().unwrap()
+//                             .unwrap_or(Message::new_empty());
+//                         // TODO: don't discard/unwrap the write_all result
+//                         sock_writer.write_all(resp.as_string().as_bytes()).unwrap();
+//                         sock_writer.flush().unwrap();
+//                     },
+
+//                     // TODO: don't make this an unwrap; handle gracefully
+//                     _ => {inc_dump.send(msg).unwrap();}
+//                 };
+//             }
+//         }
+//     }
+// }
 
 
 fn parse_message(raw_message: String) -> Option<Message> {
@@ -138,6 +181,16 @@ enum Mtype {
     Command,
     Misc,
     Invalid
+}
+
+fn valid_response_mtype(mt: Mtype) -> bool {
+    match mt {
+        Mtype::Data => true,
+        Mtype::Command => true,
+        Mtype::Misc => true,
+        Mtype::Invalid => true,
+        _ => false
+    }
 }
 
 #[derive(Clone, Debug)]
