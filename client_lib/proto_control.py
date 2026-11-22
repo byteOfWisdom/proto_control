@@ -65,7 +65,7 @@ class uplink:
             "from": msg_parts[1],
             "mtype": msg_parts[2], # TODO: convert to string
             "id": int(msg_parts[3]),
-            "content": "".join(msg_parts[4:])
+            "content": ("".join(msg_parts[4:]))[:-1]
         }
 
         if response_msg["mtype"] != "I":
