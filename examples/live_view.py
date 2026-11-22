@@ -6,7 +6,7 @@ import io
 import matplotlib.animation as animation
 
 ip = argv[2] if len(argv) > 2 else "localhost"
-uplink = proto_control.uplink(ip, 8000, "live_view")
+uplink = proto_control.uplink(ip, 8080, "live_view")
 
 x, y = np.array([]), np.array([])
 fig, ax = plt.subplots()
