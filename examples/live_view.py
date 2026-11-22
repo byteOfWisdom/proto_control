@@ -5,7 +5,8 @@ from matplotlib import pyplot as plt
 import io
 import matplotlib.animation as animation
 
-uplink = proto_control.uplink("localhost", 8000, "live_view")
+ip = argv[2] if len(argv) > 2 else "localhost"
+uplink = proto_control.uplink(ip, 8000, "live_view")
 
 x, y = np.array([]), np.array([])
 fig, ax = plt.subplots()
@@ -37,7 +38,6 @@ def update_data(_):
 
 if __name__ == "__main__":
     from_filter = argv[1]
-    ip = argv[2] if len(argv) > 2 else "localhost"
 
     ani = animation.FuncAnimation(fig=fig, func=update_data, frames=None, interval=1, cache_frame_data=False)
     plt.show()

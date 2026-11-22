@@ -5,7 +5,7 @@ from sys import argv
 
 if __name__ == "__main__":
     ip = argv[1] if len(argv) > 1 else "localhost"
-    uplink = proto_control.uplink("localhost", 8000, "random_data")
+    uplink = proto_control.uplink(ip, 8000, "random_data")
 
     start_time = time.time()
     while (True):
