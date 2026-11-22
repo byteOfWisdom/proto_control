@@ -17,7 +17,6 @@ class uplink:
             "command": "C",
             "data": "D",
             "invalid": "I",
-            
         }
 
     def _connect(self):
