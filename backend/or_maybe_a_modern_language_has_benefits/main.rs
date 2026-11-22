@@ -211,6 +211,7 @@ impl MessageFilter {
         let id_match = msg.id >= self.min_id;
         let type_match = self.mtype_cond.contains(&msg.mtype);
         let sender_match = match_filter(self.sender_cond.as_str(), msg.from.as_str());
+        // let sender_match = self.sender_cond == msg.from;
         let content_match = match_filter(self.content_cond.as_str(), msg.content.as_str());
         let all_match = type_match && sender_match && id_match && content_match;
         match all_match {
@@ -233,6 +234,7 @@ impl MessageFilter {
         match key {
             "min_id" => {self.min_id = value.parse::<u64>().unwrap_or(0);},
             "sender_cond" => {self.sender_cond = String::from(value) + "\0";}
+            // "sender_cond" => {self.sender_cond = String::from(value);}
             "content_cond" => {self.content_cond = String::from(value) + "\0";}
             "mtype_cond" => {self.mtype_cond = vec![str_to_mtype(value)];}
             _ => {},
@@ -273,7 +275,7 @@ impl ConnInterface {
 
 }
 
-const BUFFSIZE : usize  = 2048;
+const BUFFSIZE : usize  = 512;
 
 struct MessageChache {
     buffer: VecDeque<Message>,
