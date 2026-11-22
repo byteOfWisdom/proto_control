@@ -338,7 +338,7 @@ fn management_thread(new_conns: Receiver<ConnInterface>) {
 fn main() {
     // TODO: implement config via commandline args
     // let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
-    let listener = TcpListener::bind("localhost:8080").unwrap();
+    let listener = TcpListener::bind("0.0.0.0:8080").unwrap();
     let (manage_send, manage_recv) = channel::<ConnInterface>();
 
     thread::spawn(move || {management_thread(manage_recv);});
